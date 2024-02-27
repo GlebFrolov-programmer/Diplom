@@ -26,11 +26,11 @@ class Bee:
             print(i)
 
     # Сортировка пузырьком двумерного массива по последнему полю
-    def sort_places(places: list, k=-1) -> None:
-        for i in range(len(places) - 1):
-            for j in range(len(places) - i - 1):
-                if places[j][k] > places[j + 1][k]:
-                    places[j], places[j + 1] = places[j + 1], places[j]
+    def sort_places(self, k=-1) -> None:
+        for i in range(len(self.places) - 1):
+            for j in range(len(self.places) - i - 1):
+                if self.places[j][k] > self.places[j + 1][k]:
+                    self.places[j], self.places[j + 1] = self.places[j + 1], self.places[j]
 
     # Поиск наборов, где минимальный штраф. Возвращает набор индексов
     def min_penalty_index(self, k=-1) -> list:
