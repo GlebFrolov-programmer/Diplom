@@ -3,6 +3,8 @@ import pandas as pd
 import xlsxwriter
 import os
 
+from nektar import Nektar
+
 
 class Experiment:
 
@@ -23,11 +25,12 @@ class Experiment:
 
         for i in range(0, self.count_exp):
             print(f'======Hive {i + 1}======')
-            h = Hive(nektar_size=self.nektar_size,
+            task = Nektar(self.nektar_size, self.random_data)
+            h = Hive(target=task,
                      count_scout=self.count_scout,
                      ambit=self.ambit,
                      depth_search=self.depth_search,
-                     random_data=self.random_data)
+                     )
 
             h.print_best_bees()
 

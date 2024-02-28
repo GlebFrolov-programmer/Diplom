@@ -7,12 +7,12 @@ import time
 
 class Hive:
     def __init__(self,
-                 nektar_size: int,
+                 target: Nektar,
                  count_scout: int,
                  ambit: int,
                  depth_search: int,
-                 random_data: bool):
-        self.nektar = Nektar(n=nektar_size, random_data=random_data)
+                 ):
+        self.nektar = target
 
         master_time_start = time.time()
         self.master_bee = MasterBee(target=self.nektar)
