@@ -9,56 +9,65 @@ class EGA:
                  count_population: int,
                  selection: str,
                  mutation_chance: float,
+                 count_switches_gen: int,
                  ):
+        self.task = task
         self.vec_T = task.vec_T
         self.vec_d = task.vec_d
         self.vec_D = task.vec_D
         self.vec_F = task.vec_F
-        self.population = self.get_population(task=task, size_population=size_population)[:size_population]
+        self.size_population = size_population
+        self.start_population = self.get_population(task=self.task,
+                                                    size_population=size_population,
+                                                    method_generation='i',
+                                                    )[:size_population]
         for i in range(count_population):
-
+            if i == 0:
+                self.next_generation = self.start_population
             # Selection
             if selection == 'o':
-                self.selection = self.outbreeding_selection()
+                self.selection = self.outbreeding_selection(self.next_generation.copy())
             elif selection == 'r':
-                self.selection = self.random_selection(self.population.copy())
+                self.selection = self.random_selection(self.next_generation.copy())
             else:
                 raise ValueError('Choose selection: "o" - outbreeding, "r" - random')
 
             # Crossbreeding
+            children_population = self.cx_crossbreeding(self.selection)
 
+            # Mutation childrens
+            mutation_children = self.mutation(children=children_population, chance=mutation_chance, count_switches_gen=2)
+
+            self.next_generation = self.generate_next_population(parents=self.next_generation,
+                                                                 children=mutation_children,
+                                                                 proportion=(1, 1, 1))
+            print(self.start_population)
+            print(mutation_children)
+
+        print(*self.next_generation)
         # self.sort_places()
-        print(self.population)
+        # print(self.population)
 
     # Получение популяции на равномерно распределенном интервале
     @staticmethod
-    def get_population(task: Nektar, size_population: int = None) -> list:
+    def get_population(task: Nektar, size_population: int = None, method_generation: str = 'r') -> list:
 
         if size_population is None:
             size_population = int(task.count_places**0.5)
         if size_population > task.count_places:
             raise ValueError('size_population не может превышать task.count_places')
 
-        interval = task.count_places // size_population
         new_population = []
-        for i in range(0, task.count_places, interval):
-            new_population.append(task.nektar_places[i])
-
-        return new_population
-
-    @staticmethod
-    def get_population_random(task: Nektar, size_population: int = None) -> list:
-
-        if size_population is None:
-            size_population = int(task.count_places ** 0.5)
-        if size_population > task.count_places:
-            raise ValueError('size_population не может превышать task.count_places')
-
-        indexes = random.sample(range(0, task.count_places - 1), size_population)
-
-        new_population = []
-        for i in indexes:
-            new_population.append(task.nektar_places[i])
+        if method_generation == 'i':
+            interval = task.count_places // size_population
+            for i in range(0, task.count_places, interval):
+                new_population.append(task.nektar_places[i])
+        elif method_generation == 'r':
+            indexes = random.sample(range(0, task.count_places), size_population)
+            for i in indexes:
+                new_population.append(task.nektar_places[i])
+        else:
+            raise ValueError(f'Параметр method_generation должен быть: "r" или "i" (получено {method_generation})')
 
         return new_population
 
@@ -89,19 +98,26 @@ class EGA:
         return answer
 
     # Сортировка пузырьком двумерного массива по последнему полю
-    def sort_places(self, k=-1) -> None:
-        for i in range(len(self.places) - 1):
-            for j in range(len(self.places) - i - 1):
-                if self.places[j][k] > self.places[j + 1][k]:
-                    self.places[j], self.places[j + 1] = self.places[j + 1], self.places[j]
+    @staticmethod
+    def sort_population(l: list, k=-1) -> list:
+        for i in range(len(l) - 1):
+            for j in range(len(l) - i - 1):
+                if l[j][k] > l[j + 1][k]:
+                    l[j], l[j + 1] = l[j + 1], l[j]
+        return l
 
     # выбор пары методом аутбридинг
-    def outbreeding_selection(self) -> list[list]:
-        l = len(self.population) // 2
+    @staticmethod
+    def outbreeding_selection(l: list) -> list[list]:
+        length = len(l) // 2
+        parent_1 = l[:length]
+        random.shuffle(parent_1)
+        parent_2 = l[length:]
+        random.shuffle(parent_2)
 
         outbreeding = []
-        for i in range(l):
-            outbreeding.append([self.population[i], self.population[i + l]])
+        for i in range(length):
+            outbreeding.append([parent_1[i], parent_2[i]])
 
         return outbreeding
 
@@ -115,3 +131,125 @@ class EGA:
             random_selection.append([l[i], l[i + 1]])
 
         return random_selection
+
+    # СХ алгоритм скрещивания
+    def cx_crossbreeding(self, parents: list[list]) -> list:
+        new_population = []
+        for parent_pair in parents:
+            l = len(parent_pair[0])
+            parents_dict = self.arrays_to_dict(parent_pair[0], parent_pair[1])
+            cycles = []
+            used_values = []
+            index = self.start_cycle(parents_dict, used_values)
+            while len(used_values) != l:
+                cycle = []
+                pos_1 = index
+                pos_2 = parents_dict[index]
+                used_values.append(pos_1)
+                if pos_1 == pos_2:
+                    cycles.append([index])
+                else:
+                    start_pos = pos_1
+                    cycle.append(start_pos)
+                    while start_pos != pos_2:
+                        pos_1 = pos_2
+                        pos_2 = parents_dict[pos_1]
+                        cycle.append(pos_1)
+                        used_values.append(pos_1)
+                    cycles.append(cycle)
+
+                index = self.start_cycle(parents_dict, used_values)
+
+            for i in self.switch_cycles_pairs(cycles, parent_pair):
+                new_population.append(i)
+
+        return new_population
+
+    @staticmethod
+    def arrays_to_dict(l1: list | tuple, l2: list | tuple) -> dict:
+        dictionary = dict()
+        for i in range(len(l1)):
+            dictionary[int(l1[i])] = int(l2[i])
+
+        return dictionary
+
+    @staticmethod
+    def start_cycle(dictionary: dict, used_values: list):
+        for d in dictionary:
+            if d not in used_values:
+                return d
+        return -1
+
+    # ГДЕ-ТО ОШИБКА В ЭТОЙ ФУНКЦИИ
+    @staticmethod
+    def switch_cycles_pairs(cycles: list[list], pairs: list) -> list[list]:
+
+        l = len(pairs[0])
+        child_1 = ['0' for s in range(l)]
+        child_2 = ['0' for s in range(l)]
+
+        i = 0
+        for cycle in cycles:
+            if i % 2 == 0:
+                for key in pairs[0]:
+                    if int(key) in cycle:
+                        ind = pairs[0].index(key)
+                        child_1[ind] = pairs[1][ind]
+                        child_2[ind] = pairs[0][ind]
+                    if l - child_1.count('0') == len(cycle):
+                        break
+            else:
+                for key in pairs[0]:
+                    if int(key) in cycle:
+                        ind = pairs[0].index(key)
+                        child_1[ind] = pairs[0][ind]
+                        child_2[ind] = pairs[1][ind]
+                    if l - child_1.count('0') == len(cycle):
+                        break
+            i += 1
+
+        return [child_1, child_2]
+
+    def mutation(self, children: list, chance: float, count_switches_gen: int) -> list:
+
+        for i in range(len(children)):
+            if random.random() <= chance:
+                children[i] = self.switch_gens(children[i], count_switches_gen)
+
+        return [tuple(i) for i in children]
+
+    @staticmethod
+    def switch_gens(child: list | tuple, count: int) -> list | tuple:
+        for i in range(count):
+            index_1, index_2 = random.sample(range(len(child)), 2)
+
+            temp = child[index_1]
+            child[index_1] = child[index_2]
+            child[index_2] = temp
+
+        return child
+
+    def generate_next_population(self, parents: list, children: list, proportion: tuple = (1, 1, 1)) -> list:
+        '''proportion = [parents, children, other population]'''
+        next_population = []
+
+        proportion = [i/sum(proportion) for i in proportion]
+        parents_list = self.sort_population([self.get_answer(i) for i in parents])[:int(self.size_population*proportion[0])]
+        children_list = self.sort_population([self.get_answer(i) for i in children])[:int(self.size_population*proportion[0])]
+        next_population = [i[0] for i in parents_list] + [i[0] for i in children_list]
+        length = self.size_population - len(parents_list) - len(children_list)
+
+        while length != 0:
+            ind = random.randint(0, self.task.count_places)
+            if list(self.task.nektar_places[ind]) not in next_population:
+                next_population.append(self.task.nektar_places[ind])
+                length -= 1
+
+        return next_population
+
+
+
+
+
+
+
