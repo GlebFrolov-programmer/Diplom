@@ -90,8 +90,7 @@ class EGA:
         vec_X = [0 for i in range(l)]  # вектор моментов начала выполнения
         vec_Y = [0 for i in range(l)]  # вектор моментов окончания выполнения
         penalty = [0 for i in range(l)]  # вектор суммы штрафов за каждую работу
-        # sum_penalty = sum(penalty)
-        # answer = []
+
         for ind, i in enumerate(place):
             I = int(i) - 1
 
@@ -300,9 +299,3 @@ class EGA:
         print(f'EGA ({self.ega_time}): {res}')
         if line_after_print:
             print('-----------------------')
-
-
-
-
-
-

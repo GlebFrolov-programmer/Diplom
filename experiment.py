@@ -1,3 +1,4 @@
+import datetime
 from hive import Hive
 import pandas as pd
 import xlsxwriter
@@ -134,9 +135,9 @@ class Experiment:
         current_directory = os.path.dirname(current_file)
         path = ''
         if system.lower() == 'windows':
-            path = current_directory + f'\\exports\\results_of_experiments.xlsx'
+            path = current_directory + f'\\exports\\results_of_experiments_{datetime.date.today()}.xlsx'
         elif system.lower() == 'mac':
-            path = current_directory + f'/exports/results_of_experiments.xlsx'
+            path = current_directory + f'/exports/results_of_experiments_{datetime.date.today()}.xlsx'
 
         writer = pd.ExcelWriter(path=path, engine='xlsxwriter')
         df.to_excel(writer, sheet_name='Результаты алгоритмов', index=False)
