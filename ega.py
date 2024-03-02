@@ -1,6 +1,10 @@
 # from ega_algorithm.mutation import Mutation
+import datetime
+
 from nektar import Nektar
 import random
+import time
+
 
 class EGA:
 
@@ -11,6 +15,8 @@ class EGA:
                  mutation_chance: float,
                  count_switches_gen: int,
                  ):
+
+        start_time = time.time()
         self.task = task
         self.vec_T = task.vec_T
         self.vec_d = task.vec_d
@@ -24,6 +30,7 @@ class EGA:
         for i in range(count_population):
             if i == 0:
                 self.next_generation = self.start_population
+
             # Selection
             if selection == 'o':
                 self.selection = self.outbreeding_selection(self.next_generation.copy())
@@ -36,17 +43,24 @@ class EGA:
             children_population = self.cx_crossbreeding(self.selection)
 
             # Mutation childrens
-            mutation_children = self.mutation(children=children_population, chance=mutation_chance, count_switches_gen=2)
+            mutation_children = self.mutation(children=children_population,
+                                              chance=mutation_chance,
+                                              count_switches_gen=count_switches_gen)
 
-            self.next_generation = self.generate_next_population(parents=self.next_generation,
-                                                                 children=mutation_children,
-                                                                 proportion=(1, 1, 1))
-            print(self.start_population)
-            print(mutation_children)
+            # Next population
+            if i != count_population - 1:
+                self.next_generation = self.generate_next_population(parents=self.next_generation,
+                                                                     children=mutation_children,
+                                                                     proportion=(1, 1, 1),
+                                                                     last=False)
+            else:
+                self.next_generation = self.generate_next_population(parents=self.next_generation,
+                                                                     children=mutation_children,
+                                                                     proportion=(1, 1, 1),
+                                                                     last=True)
 
-        print(*self.next_generation)
-        # self.sort_places()
-        # print(self.population)
+        self.sort_population(self.next_generation)
+        self.ega_time = time.time() - start_time
 
     # Получение популяции на равномерно распределенном интервале
     @staticmethod
@@ -190,22 +204,25 @@ class EGA:
 
         i = 0
         for cycle in cycles:
+            len_added_items = 0
             if i % 2 == 0:
                 for key in pairs[0]:
                     if int(key) in cycle:
                         ind = pairs[0].index(key)
                         child_1[ind] = pairs[1][ind]
                         child_2[ind] = pairs[0][ind]
-                    if l - child_1.count('0') == len(cycle):
-                        break
+                        len_added_items += 1
+                        if len_added_items == len(cycle):
+                            break
             else:
                 for key in pairs[0]:
                     if int(key) in cycle:
                         ind = pairs[0].index(key)
                         child_1[ind] = pairs[0][ind]
                         child_2[ind] = pairs[1][ind]
-                    if l - child_1.count('0') == len(cycle):
-                        break
+                        len_added_items += 1
+                        if len_added_items == len(cycle):
+                            break
             i += 1
 
         return [child_1, child_2]
@@ -229,24 +246,67 @@ class EGA:
 
         return child
 
-    def generate_next_population(self, parents: list, children: list, proportion: tuple = (1, 1, 1)) -> list:
+    def generate_next_population(self, parents: list,
+                                 children: list,
+                                 proportion: tuple = (1, 1, 1),
+                                 last: bool = False) -> list:
         '''proportion = [parents, children, other population]'''
         next_population = []
-
         proportion = [i/sum(proportion) for i in proportion]
-        parents_list = self.sort_population([self.get_answer(i) for i in parents])[:int(self.size_population*proportion[0])]
-        children_list = self.sort_population([self.get_answer(i) for i in children])[:int(self.size_population*proportion[0])]
-        next_population = [i[0] for i in parents_list] + [i[0] for i in children_list]
-        length = self.size_population - len(parents_list) - len(children_list)
 
-        while length != 0:
-            ind = random.randint(0, self.task.count_places)
-            if list(self.task.nektar_places[ind]) not in next_population:
-                next_population.append(self.task.nektar_places[ind])
-                length -= 1
+        # если последняя популяция, то возвращаем объекты с решениями, иначе просто перестановки
+        if last:
+            parents_list = self.sort_population([self.get_answer(i) for i in parents])[
+                           :int(self.size_population//2)]
+            children_list = self.sort_population([self.get_answer(i) for i in children])[
+                            :int(self.size_population//2)]
+            # проверка на дубликаты
+            for j in parents_list + children_list:
+                if j not in next_population:
+                    next_population.append(j)
 
+            return next_population
+
+            # length = self.size_population - len(parents_list) - len(children_list)
+            # while length != 0:
+            #     ind = random.randint(0, self.task.count_places)
+            #
+            #     if self.get_answer(self.task.nektar_places[ind]) not in next_population:
+            #         next_population.append(self.get_answer(self.task.nektar_places[ind]))
+            #         length -= 1
+        else:
+            parents_list = self.sort_population([self.get_answer(i) for i in parents])[
+                           :int(self.size_population * proportion[0])]
+            children_list = self.sort_population([self.get_answer(i) for i in children])[
+                            :int(self.size_population * proportion[0])]
+
+            # проверка на дубликаты
+            for j in [i[0] for i in parents_list] + [i[0] for i in children_list]:
+                if j not in next_population:
+                    next_population.append(j)
+
+            length = self.size_population - len(parents_list) - len(children_list)
+            while length != 0:
+                ind = random.randint(0, self.task.count_places-1)
+                if list(self.task.nektar_places[ind]) not in next_population:
+                    next_population.append(self.task.nektar_places[ind])
+                    length -= 1
         return next_population
 
+    # вывод лучших решений
+    def print_results(self, line_after_print: bool = True) -> None:
+        res = []
+        best_score = -1
+        for i in self.next_generation:
+            if best_score == -1 or best_score == i[-1]:
+                best_score = i[-1]
+                res.append(i)
+            else:
+                break
+
+        print(f'EGA ({self.ega_time}): {res}')
+        if line_after_print:
+            print('-----------------------')
 
 
 
