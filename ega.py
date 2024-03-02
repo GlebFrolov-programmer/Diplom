@@ -193,7 +193,6 @@ class EGA:
                 return d
         return -1
 
-    # ГДЕ-ТО ОШИБКА В ЭТОЙ ФУНКЦИИ
     @staticmethod
     def switch_cycles_pairs(cycles: list[list], pairs: list) -> list[list]:
 
