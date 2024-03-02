@@ -83,8 +83,9 @@ class Experiment:
                   count_switches_gen=self.count_switches_gen,
                   )
 
+
+        print(f"=== Результаты эксперимента {i + 1} ===")
         self.print_results_of_exp(h, ega)
-        print(f"=== Эксперимент {i + 1} окончен ===")
 
         return {
             # Эвристика
