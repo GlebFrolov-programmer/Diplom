@@ -1,4 +1,5 @@
 import datetime
+import multiprocessing
 from hive import Hive
 import pandas as pd
 import xlsxwriter
@@ -30,7 +31,8 @@ class Experiment:
                  count_switches_gen: int,
 
                  # ОС
-                 system: str
+                 system: str,
+                 count_stream: int,
                  ):
 
         self.res_experimets = []
@@ -46,38 +48,8 @@ class Experiment:
         self.mutation_chance = mutation_chance
         self.count_switches_gen = count_switches_gen
 
-        for i in range(0, self.count_exp):
-            print(f'======Hive {i + 1}======')
-            task = Nektar(self.nektar_size, self.random_data)
-            h = Hive(target=task,
-                     count_scout=self.count_scout,
-                     ambit=self.ambit,
-                     depth_search=self.depth_search,
-                     )
-
-            ega = EGA(task=task,
-                      size_population=self.size_population,
-                      count_population=self.count_population,
-                      selection=self.selection,
-                      mutation_chance=self.mutation_chance,
-                      count_switches_gen=self.count_switches_gen,
-                      )
-
-            self.print_results_of_exp(h, ega)
-
-            self.res_experimets.append({
-                                        # Эвристика
-                                        'forager_penalty': h.best_forager.sum_penalty,
-                                        'master_penalty': h.master_bee.sum_penalty,
-                                        'master_time': h.master_time,
-                                        'forager_time': h.forager_time,
-                                        'scout_time': h.scout_time,
-
-                                        # ЭГА
-                                        'ega_penalty': ega.next_generation[0][-1],
-                                        'ega_time': ega.ega_time,
-                                        })
-            del h, ega
+        with multiprocessing.Pool(processes=count_stream) as pool:
+            self.res_experimets = pool.map(self.run_one_experiment, range(0, self.count_exp))
 
         self.res_sum_penalty_hive = [round(((i['forager_penalty'] - i['master_penalty'])/i['master_penalty']) * 100, 2) for i in self.res_experimets]
         self.res_sum_penalty_ega = [round(((i['ega_penalty'] - i['master_penalty'])/i['master_penalty']) * 100, 2) for i in self.res_experimets]
@@ -93,6 +65,39 @@ class Experiment:
 
         self.table = self.create_dataframe()
         self.save_ta_excel(self.table, system=system)
+
+    def run_one_experiment(self, i):
+        print(f"=== Эксперимент {i + 1} запущен ===")
+        task = Nektar(self.nektar_size, self.random_data)
+        h = Hive(target=task,
+                 count_scout=self.count_scout,
+                 ambit=self.ambit,
+                 depth_search=self.depth_search,
+                 )
+
+        ega = EGA(task=task,
+                  size_population=self.size_population,
+                  count_population=self.count_population,
+                  selection=self.selection,
+                  mutation_chance=self.mutation_chance,
+                  count_switches_gen=self.count_switches_gen,
+                  )
+
+        self.print_results_of_exp(h, ega)
+        print(f"=== Эксперимент {i + 1} окончен ===")
+
+        return {
+            # Эвристика
+            'forager_penalty': h.best_forager.sum_penalty,
+            'master_penalty': h.master_bee.sum_penalty,
+            'master_time': h.master_time,
+            'forager_time': h.forager_time,
+            'scout_time': h.scout_time,
+
+            # ЭГА
+            'ega_penalty': ega.next_generation[0][-1],
+            'ega_time': ega.ega_time,
+        }
 
     # Data frame of experiments
     def create_dataframe(self) -> pd.DataFrame:
