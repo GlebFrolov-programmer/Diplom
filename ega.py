@@ -59,7 +59,7 @@ class EGA:
                                                                      proportion=(1, 1, 1),
                                                                      last=True)
 
-        self.sort_population(self.next_generation)
+        self.next_generation = self.sort_population(self.next_generation)
         self.ega_time = time.time() - start_time
 
     # Получение популяции на равномерно распределенном интервале
@@ -267,13 +267,6 @@ class EGA:
 
             return next_population
 
-            # length = self.size_population - len(parents_list) - len(children_list)
-            # while length != 0:
-            #     ind = random.randint(0, self.task.count_places)
-            #
-            #     if self.get_answer(self.task.nektar_places[ind]) not in next_population:
-            #         next_population.append(self.get_answer(self.task.nektar_places[ind]))
-            #         length -= 1
         else:
             parents_list = self.sort_population([self.get_answer(i) for i in parents])[
                            :int(self.size_population * proportion[0])]
