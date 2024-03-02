@@ -62,9 +62,10 @@ class Hive:
 
         return best_scout, best_forager
 
-    def print_best_bees(self) -> None:
+    def print_best_bees(self, line_after_print: bool = True) -> None:
         print('-----| Best bees |-----')
         print(f'Master ({self.master_time}): {self.master_bee.best_places}')
         print(f'Scout ({self.scout_time}): {self.best_scout.best_place}')
         print(f'Forager ({self.forager_time}): {self.best_forager.best_places}')
-        print('-----------------------')
+        if line_after_print:
+            print('-----------------------')

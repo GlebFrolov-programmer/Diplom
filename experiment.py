@@ -2,19 +2,36 @@ from hive import Hive
 import pandas as pd
 import xlsxwriter
 import os
-
+from ega import EGA
 from nektar import Nektar
 
 
 class Experiment:
 
     def __init__(self,
+                 # Эксперимент
+                 count_exp: int,
+
+                 # Задача
+                 random_data: bool,
                  nektar_size: int,
+
+                 # Эвристика
                  count_scout: int,
                  ambit: int,
                  depth_search: int,
-                 count_exp: int,
-                 random_data: bool):
+
+                 # ЭГА
+                 size_population: int,
+                 count_population: int,
+                 selection: str,
+                 mutation_chance: float,
+                 count_switches_gen: int,
+
+                 # ОС
+                 system: str
+                 ):
+
         self.res_experimets = []
         self.nektar_size = nektar_size
         self.count_scout = count_scout
@@ -32,7 +49,17 @@ class Experiment:
                      depth_search=self.depth_search,
                      )
 
-            h.print_best_bees()
+            ega = EGA(task=task,
+                      size_population=size_population,
+                      count_population=count_population,
+                      # count_population=3,
+                      selection=selection,
+                      mutation_chance=mutation_chance,
+                      count_switches_gen=count_switches_gen,
+                      )
+
+            h.print_best_bees(line_after_print=False)
+            ega.print_results(line_after_print=True)
 
             self.res_experimets.append({'forager_penalty': h.best_forager.sum_penalty,
                                         'master_penalty': h.master_bee.sum_penalty,
@@ -40,7 +67,7 @@ class Experiment:
                                         'forager_time': h.forager_time,
                                         'scout_time': h.scout_time
                                         })
-            del h
+            del h, ega
 
         self.res_sum_penalty = [round(((i['forager_penalty'] - i['master_penalty'])/i['master_penalty']) * 100, 2) for i in self.res_experimets]
         self.res_time = [round((i['master_time']/(i['forager_time']+i['scout_time']))*100, 2) for i in self.res_experimets]
@@ -48,7 +75,7 @@ class Experiment:
         self.sr_time = round(sum(self.res_time)/len(self.res_time), 2)
 
         self.table = self.create_dataframe()
-        self.save_ta_excel(self.table)
+        self.save_ta_excel(self.table, system=system)
 
     # Data frame of experiments
     def create_dataframe(self) -> pd.DataFrame:
@@ -74,10 +101,14 @@ class Experiment:
 
     # dataframe export to excel and save in exports directory
     @staticmethod
-    def save_ta_excel(df: pd.DataFrame) -> None:
+    def save_ta_excel(df: pd.DataFrame, system: str = 'windows') -> None:
         current_file = os.path.realpath(__file__)
         current_directory = os.path.dirname(current_file)
-        path = current_directory + f'\\exports\\results_of_experiments.xlsx'
+        if system.lower() == 'windows':
+            path = current_directory + f'\\exports\\results_of_experiments.xlsx'
+        elif system.lower() == 'mac':
+            path = current_directory + f'/exports/results_of_experiments.xlsx'
+
         writer = pd.ExcelWriter(path=path, engine='xlsxwriter')
         df.to_excel(writer, sheet_name='Результаты алгоритмов', index=False)
         writer._save()
