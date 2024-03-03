@@ -66,7 +66,7 @@ class Nektar:
 
         # В зависимости от choose_vec генерируем вектор со значениями
         if choose_vec == "vec_T":
-            return [random.randint(0, len_vec * 3) for i in range(len_vec)]
+            return [random.randint(0, len_vec * 4) for i in range(len_vec)]
         elif choose_vec == "vec_d":
             return [random.randint(0, len_vec * 3) for i in range(len_vec)]
         elif choose_vec == "vec_D":

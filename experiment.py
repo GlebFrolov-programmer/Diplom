@@ -51,17 +51,17 @@ class Experiment:
         with multiprocessing.Pool(processes=count_stream) as pool:
             self.res_experimets = pool.map(self.run_one_experiment, range(0, self.count_exp))
 
-        self.res_sum_penalty_hive = [round(((i['forager_penalty'] - i['master_penalty'])/i['master_penalty']) * 100, 2) for i in self.res_experimets]
-        self.res_sum_penalty_ega = [round(((i['ega_penalty'] - i['master_penalty'])/i['master_penalty']) * 100, 2) for i in self.res_experimets]
+        self.res_sum_penalty_hive = [round(((i['forager_penalty'] - i['master_penalty'])/i['master_penalty']) * 100, 3) for i in self.res_experimets]
+        self.res_sum_penalty_ega = [round(((i['ega_penalty'] - i['master_penalty'])/i['master_penalty']) * 100, 3) for i in self.res_experimets]
 
-        self.res_time_hive = [round((i['master_time']/(i['forager_time']+i['scout_time']))*100, 2) for i in self.res_experimets]
-        self.res_time_ega = [round((i['master_time']/i['ega_time'])*100, 2) for i in self.res_experimets]
+        self.res_time_hive = [round((i['master_time']/(i['forager_time']+i['scout_time']))*100, 3) for i in self.res_experimets]
+        self.res_time_ega = [round((i['master_time']/i['ega_time'])*100, 3) for i in self.res_experimets]
 
-        self.sr_func_hive = round(sum(self.res_sum_penalty_hive)/len(self.res_sum_penalty_hive), 2)
-        self.sr_func_ega = round(sum(self.res_sum_penalty_ega)/len(self.res_sum_penalty_ega), 2)
+        self.sr_func_hive = round(sum(self.res_sum_penalty_hive)/len(self.res_sum_penalty_hive), 3)
+        self.sr_func_ega = round(sum(self.res_sum_penalty_ega)/len(self.res_sum_penalty_ega), 3)
 
-        self.sr_time_hive = round(sum(self.res_time_hive)/len(self.res_time_hive), 2)
-        self.sr_time_ega = round(sum(self.res_time_ega)/len(self.res_time_ega), 2)
+        self.sr_time_hive = round(sum(self.res_time_hive)/len(self.res_time_hive), 3)
+        self.sr_time_ega = round(sum(self.res_time_ega)/len(self.res_time_ega), 3)
 
         self.table = self.create_dataframe()
         self.save_ta_excel(self.table, system=system)
@@ -82,7 +82,6 @@ class Experiment:
                   mutation_chance=self.mutation_chance,
                   count_switches_gen=self.count_switches_gen,
                   )
-
 
         print(f"=== Результаты эксперимента {i + 1} ===")
         self.print_results_of_exp(h, ega)
@@ -109,10 +108,10 @@ class Experiment:
                            'Относит. откл. (T) ega': self.res_time_ega,
                            })
         df.loc[len(df.index)] = ['--------------------------------' for i in range(4)]
-        df.loc[len(df.index)] = ['Ср. откл. (F -> 0%) hive', str(self.sr_func_hive) + '%', '', '']
-        df.loc[len(df.index)] = ['Ср. откл.(T > 100%) hive', str(self.sr_time_hive) + '%', '', '']
-        df.loc[len(df.index)] = ['Ср. откл. (F -> 0%) ega', str(self.sr_func_ega) + '%', '', '']
-        df.loc[len(df.index)] = ['Ср. откл.(T > 100%) ega', str(self.sr_time_ega) + '%', '', '']
+        df.loc[len(df.index)] = ['Ср. откл. (F -> 0%) hive', str(self.sr_func_hive) + ' %', '', '']
+        df.loc[len(df.index)] = ['Ср. откл.(T > 100%) hive', str(self.sr_time_hive) + ' %', '', '']
+        df.loc[len(df.index)] = ['Ср. откл. (F -> 0%) ega', str(self.sr_func_ega) + ' %', '', '']
+        df.loc[len(df.index)] = ['Ср. откл.(T > 100%) ega', str(self.sr_time_ega) + ' %', '', '']
         df.loc[len(df.index)] = ['--------------------------------' for i in range(4)]
         df.loc[len(df.index)] = ['Parameters:', '', '', '']
         df.loc[len(df.index)] = ['n', self.nektar_size, '', '']
@@ -148,7 +147,7 @@ class Experiment:
         writer = pd.ExcelWriter(path=path, engine='xlsxwriter')
         df.to_excel(writer, sheet_name='Результаты алгоритмов', index=False)
         worksheet = writer.sheets['Результаты алгоритмов']
-        worksheet.set_column('A:D', 18)
+        worksheet.set_column('A:D', 20)
         writer._save()
 
     @staticmethod
