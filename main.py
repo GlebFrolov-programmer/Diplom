@@ -5,7 +5,7 @@ from multiprocessing import freeze_support
 
 def main():
     nektar_size = 10
-    Experiment(count_exp=10,
+    Experiment(count_exp=100,
 
                random_data=True,
                nektar_size=nektar_size,
@@ -17,6 +17,7 @@ def main():
                size_population=int(math.factorial(nektar_size)**0.25),
                count_population=int(math.factorial(nektar_size)**0.5),
                selection="r",
+               # selection="o",
                mutation_chance=0.05,
                count_switches_gen=2,
 
