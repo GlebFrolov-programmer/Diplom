@@ -22,6 +22,7 @@ class EGA:
         self.vec_d = task.vec_d
         self.vec_D = task.vec_D
         self.vec_F = task.vec_F
+        self.selection_str = selection
         self.size_population = size_population
         self.start_population = self.get_population(task=self.task,
                                                     size_population=size_population,
@@ -294,7 +295,9 @@ class EGA:
                 res.append(i)
             else:
                 break
-
-        print(f'EGA ({self.ega_time}): {res}')
+        if self.selection_str == 'r':
+            print(f'EGA+ ({self.ega_time}): {res}')
+        else:
+            print(f'EGA  ({self.ega_time}): {res}')
         if line_after_print:
             print('-----------------------')
